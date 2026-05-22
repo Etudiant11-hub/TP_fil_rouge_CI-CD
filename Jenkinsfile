@@ -1,62 +1,70 @@
 pipeline {
     agent any
-    
+
     environment {
-        REGISTRY = "localhost:5000"
-        IMAGE_NAME = "taskflow-app"
-        VERSION = "v${env.BUILD_ID}"
+        REGISTRY = 'ghcr.io/etudiant11-hub'
+        IMAGE_NAME = 'taskflow-saas'
     }
 
     stages {
-        stage('Checkout Git') {
+        stage('Clonage & Initialisation') {
             steps {
-                echo 'Récupération du code source depuis GitHub...'
+                echo '=== CLONAGE DU DEPOT ==='
                 checkout scm
             }
         }
-        
-        stage('Install Dependencies') {
+
+        stage('Installation des Dépendances') {
             steps {
-                echo 'Installation des modules Node.js pour TaskFlow...'
-                sh 'echo "Simulating: npm ci --only=production"'
-                echo '✓ Dossier node_modules généré avec succès.'
+                echo '=== INSTALLATION NPM ==='
+                sh 'npm install'
             }
         }
-        
-        stage('Run Tests') {
+
+        stage('Validation & Tests (DEV/TEST)') {
             steps {
-                echo 'Exécution des tests unitaires (Mocking)...'
-                sh 'echo "Simulating: npm test"'
-                echo '✓ Test réussi : Les calculs de base et les routes d\'API fonctionnent.'
+                echo '=== LANCEMENT DES TESTS AVEC CONFIG TEST ==='
+                // On injecte le fichier test.env pour les tests
+                sh 'export $(cat config/test.env | xargs) && npm test'
             }
         }
-        
-        stage('Build Docker Image') {
+
+        stage('Build & Push Docker Image') {
             steps {
-                echo "Construction de l'image Docker TaskFlow..."
-                sh "echo 'Simulating: docker build -t ${REGISTRY}/${IMAGE_NAME}:${VERSION} .'"
-                echo "✓ Image ${IMAGE_NAME}:${VERSION} créée avec succès."
+                echo '=== CONFIGURATION DU BUILD DOCKER ==='
+                // Simulation du build de l'image tagguée avec le numéro de build Jenkins
+                echo "Building image: ${env.REGISTRY}/${env.IMAGE_NAME}:${env.BUILD_NUMBER}"
             }
         }
-        
-        stage('Push to Registry') {
+
+        stage('Déploiement en Staging (TEST)') {
             steps {
-                echo "Envoi de l'image vers le registre local (${REGISTRY})..."
-                sh "echo 'Simulating: docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}'"
-                echo "✓ Image poussée avec succès sur le registre local."
+                echo '=== DEPLOIEMENT SUR LE SERVEUR DE TEST ==='
+                sh 'export $(cat config/test.env | xargs) && echo "TaskFlow lancé sur le port $PORT en mode $NODE_ENV"'
+            }
+        }
+
+        stage('Approbation Manuelle pour la PROD') {
+            steps {
+                checkpoint 'Passage en Production'
+                input message: "Valider le déploiement de la version #${env.BUILD_NUMBER} en Production ?", ok: "Déployer !"
+            }
+        }
+
+        stage('Déploiement en Production') {
+            steps {
+                echo '=== DEPLOIEMENT SUR LE CLUSTER DE PROD ==='
+                sh 'export $(cat config/prod.env | xargs) && echo "TaskFlow LIVE sur le port $PORT en mode $NODE_ENV"'
             }
         }
     }
-    
+
     post {
-        always {
-            echo 'Nettoyage de l\'espace de travail...'
-            cleanWs()
-        }
         success {
-            echo '======================================================='
-            echo '  PIPELINE CI/CD TASKFLOW : SUCCÈS COMPLET (VERT)      '
-            echo '======================================================='
+            echo "✅ Pipeline terminé avec succès pour le build #${env.BUILD_NUMBER} !"
+        }
+        failure {
+            echo "❌ Le build #${env.BUILD_NUMBER} a échoué. Vérifiez les logs."
         }
     }
 }
