@@ -61,11 +61,21 @@ pipeline {
     }
 
     post {
+        always {
+            echo '=== MONITORING : Nettoyage de l\'espace de travail et archivage des logs ==='
+            // Ici, on simule la collecte des métriques du build
+        }
         success {
-            echo "✅ Pipeline termine avec succes pour le build #${env.BUILD_NUMBER} !"
+            echo "✅ NOTIFICATION : Le build #${env.BUILD_NUMBER} de TaskFlow est REUSSI !"
+            echo "📢 [Slack/Discord] : Version #${env.BUILD_NUMBER} déployée avec succès en Production ! Production LIVE 🚀"
         }
         failure {
-            echo "❌ Le build #${env.BUILD_NUMBER} a echoue. Verifiez les logs."
+            echo "❌ ALERTE CRITIQUE : Le build #${env.BUILD_NUMBER} a ECHOUE !"
+            echo "📢 [Slack/Discord/Email] : Attention l'équipe, le pipeline a planté sur la branche ${env.BRANCH_NAME}. Déploiement annulé !"
+        }
+        aborted {
+            echo "⚠️ NOTIFICATION : Le build #${env.BUILD_NUMBER} a été ANNULE."
+            echo "📢 [Slack] : L'approbation manuelle pour la Production a été refusée ou a expiré."
         }
     }
 }
