@@ -1,0 +1,15 @@
+{
+  "name": "taskflow-app",
+  "version": "1.0.0",
+  "description": "Application SaaS TaskFlow pour TP CI/CD",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js",
+    "lint": "echo \"Linting simulé : OK\""
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {}
+}
