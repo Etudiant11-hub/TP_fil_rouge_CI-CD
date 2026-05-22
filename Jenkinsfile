@@ -1,5 +1,11 @@
 pipeline {
-    agent any
+    agent {
+        docker { 
+            image 'node:18-alpine' 
+            // Permet de réutiliser le démon Docker de l'hôte pour les étapes de build suivantes
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
     
     environment {
         REGISTRY = "localhost:5000"
